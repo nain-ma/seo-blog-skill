@@ -381,10 +381,6 @@ mkdir -p ~/logs/deepclick-blog
 
 如果保存文件失败（权限等问题），只输出到对话，不中断流程。
 
-**频道通知版**（openclaw `--deliver` 到 Telegram/Discord 时额外输出，放在完整报告之前）：
-
-读取 `templates/channel-notify.md`，按实际数据填充占位符后输出。
-
 ---
 
 ## 质量检查清单（发布前自查）
