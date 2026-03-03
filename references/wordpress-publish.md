@@ -1,28 +1,21 @@
-# WordPress 双语发布技术参考（Polylang Pro + Yoast）
+# WordPress 双语发布技术参考（Polylang Pro + Rank Math SEO）
 
 ## 前置配置（只需一次）
 
 ### 1. Application Password 生成
 WordPress Admin → Users → Edit Profile → 滚动到 "Application Passwords" → 输入名称 → 添加 → **立即复制**
 
-### 2. Yoast SEO meta 字段注册（必须）
-在主题 `functions.php` 中添加：
+### 2. SEO 插件说明
+**使用 Rank Math SEO**（当前站点配置）：字段默认已对 REST API 开放，**无需修改 functions.php**。
 
-```php
-add_action( 'init', function () {
-    foreach ( ['_yoast_wpseo_title', '_yoast_wpseo_metadesc', '_yoast_wpseo_focuskw'] as $key ) {
-        register_post_meta( 'post', $key, [
-            'show_in_rest'  => true,
-            'single'        => true,
-            'type'          => 'string',
-            'auth_callback' => function () { return current_user_can( 'edit_posts' ); },
-        ] );
-    }
-} );
-```
+| 用途 | 字段名 |
+|------|--------|
+| SEO 标题 | `rank_math_title` |
+| Meta 描述 | `rank_math_description` |
+| 焦点关键词 | `rank_math_focus_keyword` |
 
-> 如果使用 RankMath，字段默认已开放，键名为：
-> `rank_math_title`, `rank_math_description`, `rank_math_focus_keyword`
+> 如果改用 Yoast SEO，需要在 functions.php 中手动注册字段（见备注），键名为：
+> `_yoast_wpseo_title`, `_yoast_wpseo_metadesc`, `_yoast_wpseo_focuskw`
 
 ---
 
@@ -72,9 +65,9 @@ en_post = publish_post(
         "slug": "meta-ads-high-ctr-low-cvr-2025",
         "categories": [3],
         "meta": {
-            "_yoast_wpseo_title": "Why Meta Ads Have High CTR But Low CVR [2025]",
-            "_yoast_wpseo_metadesc": "Your Meta ads get clicks but not conversions? Here are the 5 post-click friction points killing your CVR — and how to fix each one.",
-            "_yoast_wpseo_focuskw": "meta ads high ctr low cvr"
+            "rank_math_title": "Why Meta Ads Have High CTR But Low CVR [2025]",
+            "rank_math_description": "Your Meta ads get clicks but not conversions? Here are the 5 post-click friction points killing your CVR — and how to fix each one.",
+            "rank_math_focus_keyword": "meta ads high ctr low cvr"
         }
     },
     lang="en"
@@ -96,9 +89,9 @@ zh_post = publish_post(
         "slug": "meta-ads-high-ctr-low-cvr-2025-zh",
         "categories": [4],
         "meta": {
-            "_yoast_wpseo_title": "Meta 广告高点击低转化？5 个关键原因分析 [2025]",
-            "_yoast_wpseo_metadesc": "Meta 广告点击率不错但转化率低？本文分析 5 个 post-click 流失节点及修复方案，帮助降低 CPA。",
-            "_yoast_wpseo_focuskw": "Meta 广告高点击低转化"
+            "rank_math_title": "Meta 广告高点击低转化？5 个关键原因分析 [2025]",
+            "rank_math_description": "Meta 广告点击率不错但转化率低？本文分析 5 个 post-click 流失节点及修复方案，帮助降低 CPA。",
+            "rank_math_focus_keyword": "Meta 广告高点击低转化"
         }
     },
     lang="zh",  # 对应 Polylang 中配置的中文语言代码
@@ -148,7 +141,7 @@ curl "https://yoursite.com/wp-json/wp/v2/posts/{en_post_id}" \
 | 403 | 用户权限不足 | 确保用户是 Editor 或 Admin 角色 |
 | 400 `term_exists` | 分类 ID 不存在 | 检查分类 ID 是否正确 |
 | 400 lang parameter | Polylang Free 版不支持 | 升级到 Polylang Pro |
-| Yoast meta 不生效 | 未在 functions.php 注册 | 添加 `register_post_meta` 代码 |
+| Rank Math meta 不生效 | Rank Math 版本过旧 | 升级到最新版本，字段默认开放 |
 
 ---
 

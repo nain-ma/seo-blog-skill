@@ -15,19 +15,20 @@ description: >
 
 发布前需要以下配置（从环境变量或用户提供）：
 
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `DEEPCLICK_WP_URL` | WordPress 站点地址 | `https://deepclick.io` |
-| `DEEPCLICK_WP_USER` | WordPress 用户名 | `admin` |
-| `DEEPCLICK_WP_APP_PASSWORD` | Application Password | `xxxx xxxx xxxx xxxx xxxx xxxx` |
-| `DEEPCLICK_DEMO_URL` | Demo 预约链接（用于 CTA） | `https://deepclick.io/demo` |
-| `DEEPCLICK_WP_EN_CATEGORY` | 英文博客分类 ID | `3` |
-| `DEEPCLICK_WP_ZH_CATEGORY` | 中文博客分类 ID | `4` |
-| `DEEPCLICK_WP_ZH_LANG` | Polylang 中文语言代码 | `zh`（需与 Polylang 配置一致） |
+| 变量                        | 说明                      | 示例                            |
+| --------------------------- | ------------------------- | ------------------------------- |
+| `DEEPCLICK_WP_URL`          | WordPress 站点地址        | `https://deepclick.com`         |
+| `DEEPCLICK_WP_USER`         | WordPress 用户名          | `admin`                         |
+| `DEEPCLICK_WP_APP_PASSWORD` | Application Password      | `xxxx xxxx xxxx xxxx xxxx xxxx` |
+| `DEEPCLICK_DEMO_URL`        | Demo 预约链接（用于 CTA） | `https://deepclick.com`         |
+| `DEEPCLICK_WP_EN_CATEGORY`  | 英文博客分类 ID           | `3`                             |
+| `DEEPCLICK_WP_ZH_CATEGORY`  | 中文博客分类 ID           | `4`                             |
+| `DEEPCLICK_WP_ZH_LANG`      | Polylang 中文语言代码     | `zh`（需与 Polylang 配置一致）  |
 
 如果用户没有提供配置，先询问，或提示他们将配置加入环境变量。
 
 > **WordPress 前置要求**（只需配置一次）：
+>
 > 1. 在 `functions.php` 中注册 Yoast SEO meta 字段（见 `references/wordpress-publish.md` § SEO插件集成）
 > 2. Polylang Pro（免费版无法通过 REST API 关联翻译）
 > 3. WordPress Application Password（Users → Profile → Application Passwords）
@@ -50,6 +51,7 @@ GET https://radar.qiliangjia.one/api/digests?type=8h&limit=3&offset=0
 **手动模式**：用户直接提供话题、链接或原始信号内容，跳过 API 调用。
 
 **信号相关性过滤规则**（按优先级排序）：
+
 1. Meta/Facebook 广告政策、功能变化、算法更新
 2. 转化率优化、post-click、落地页、CRO 相关讨论
 3. 广告成本上涨、CPA 压力、ROI 下降
@@ -65,12 +67,12 @@ GET https://radar.qiliangjia.one/api/digests?type=8h&limit=3&offset=0
 
 基于筛选出的信号，选择一个清晰的文章角度。角度类型：
 
-| 类型 | 适用场景 | 示例标题格式 |
-|------|----------|-------------|
-| 新闻分析 | Meta 政策/功能变化 | "How [Meta Change] Will Impact Your Ad CVR in 2025" |
-| 操作指南 | 具体优化问题 | "5 Post-Click Fixes That Lower Meta Ads CPA by 30%" |
+| 类型     | 适用场景            | 示例标题格式                                          |
+| -------- | ------------------- | ----------------------------------------------------- |
+| 新闻分析 | Meta 政策/功能变化  | "How [Meta Change] Will Impact Your Ad CVR in 2025"   |
+| 操作指南 | 具体优化问题        | "5 Post-Click Fixes That Lower Meta Ads CPA by 30%"   |
 | 数据洞察 | Benchmark、趋势数据 | "Meta Ads CVR Benchmarks [2025]: Where Do You Stand?" |
-| 问题诊断 | 常见痛点 | "Why Your Facebook Ads Have High CTR But Low CVR" |
+| 问题诊断 | 常见痛点            | "Why Your Facebook Ads Have High CTR But Low CVR"     |
 
 每篇文章聚焦**一个核心角度**，不要把所有信号都塞进一篇文章。
 
@@ -100,12 +102,14 @@ FOCUS_KW_ZH: [中文焦点关键词]
 参考 `references/seo-structure.md` 中的文章结构模板。
 
 **英文版写作要点**：
+
 - 面向全球 Meta Ads 从业者（广告买手、增长 PM、DTC 品牌营销）
 - 语言：直接、数据驱动、实操性强；避免过度推销
 - 字数：新闻分析 800-1200 词；操作指南 1500-2500 词
 - 内嵌 3 个 CTA（见 CTA 规范）
 
 **中文版写作要点**：
+
 - 面向出海品牌广告团队、代理公司买手、增长负责人
 - **不是机械翻译**：用中文市场惯用表达，可增加本地化案例或数据参照
 - 核心论点和结构与英文版保持一致，但行文风格适配中文读者
@@ -143,13 +147,14 @@ FOCUS_KW_ZH: [中文焦点关键词]
 
 **CTA 规范**：
 
-| 位置 | 形式 | 文案方向 |
-|------|------|---------|
-| 顶部（文章开始后 1-2 段） | 纯文字超链接 | 引发共鸣 + 指向痛点解决方案 |
-| 中部（关键洞察后） | Callout/Banner | 数据对比 + 免费审计/资源 |
-| 底部（文章结尾） | 完整 CTA Block | 价值主张 + "Book a Demo" 主行动 |
+| 位置                      | 形式           | 文案方向                        |
+| ------------------------- | -------------- | ------------------------------- |
+| 顶部（文章开始后 1-2 段） | 纯文字超链接   | 引发共鸣 + 指向痛点解决方案     |
+| 中部（关键洞察后）        | Callout/Banner | 数据对比 + 免费审计/资源        |
+| 底部（文章结尾）          | 完整 CTA Block | 价值主张 + "Book a Demo" 主行动 |
 
 底部 CTA 模板（英文）：
+
 ```
 ---
 **Stop losing conversions after the click.**
@@ -162,6 +167,7 @@ through automated re-engagement and post-click link optimization.
 ```
 
 底部 CTA 模板（中文）：
+
 ```
 ---
 **广告有点击，但转化一直上不去？**
@@ -192,9 +198,9 @@ Body: {
   "slug": SLUG_EN,
   "categories": [DEEPCLICK_WP_EN_CATEGORY],
   "meta": {
-    "_yoast_wpseo_title": SEO_TITLE_EN,
-    "_yoast_wpseo_metadesc": META_DESC_EN,
-    "_yoast_wpseo_focuskw": FOCUS_KW_EN
+    "rank_math_title": SEO_TITLE_EN,
+    "rank_math_description": META_DESC_EN,
+    "rank_math_focus_keyword": FOCUS_KW_EN
   }
 }
 → 记录返回的 en_post_id
@@ -209,9 +215,9 @@ Body: {
   "slug": SLUG_ZH,
   "categories": [DEEPCLICK_WP_ZH_CATEGORY],
   "meta": {
-    "_yoast_wpseo_title": SEO_TITLE_ZH,
-    "_yoast_wpseo_metadesc": META_DESC_ZH,
-    "_yoast_wpseo_focuskw": FOCUS_KW_ZH
+    "rank_math_title": SEO_TITLE_ZH,
+    "rank_math_description": META_DESC_ZH,
+    "rank_math_focus_keyword": FOCUS_KW_ZH
   }
 }
 → 记录返回的 zh_post_id
@@ -220,6 +226,7 @@ Body: {
 **认证**：Base64 编码 `username:app_password`，放入 `Authorization: Basic <token>` Header。
 
 **发布成功后，向用户报告**：
+
 ```
 ✅ 博客已发布
 - 英文版：{en_post_url} (ID: {en_post_id})
