@@ -15,28 +15,63 @@ description: >
 
 **发布方式**：直接调用 WordPress REST API（Basic Auth + Application Password），无需 wpcom-mcp 或任何 OAuth 服务。
 
-### 首次使用：运行配置向导
+### 检测是否需要初始化
+
+每次 skill 被调用时，先检查配置文件是否存在且有效：
 
 ```bash
-python3 ~/.claude/skills/deepclick-blog/scripts/setup.py
+python3 -c "
+import json; from pathlib import Path
+p = Path('~/.config/deepclick-blog/sites.json').expanduser()
+print('ok' if p.exists() and json.loads(p.read_text()) else 'missing')
+"
 ```
 
-向导会交互式引导你：
-1. 输入站点域名（可配置多个）
-2. 输入 WordPress 用户名
-3. 粘贴 Application Password（后台 → Users → Profile → Application Passwords → 生成）
-4. 自动测试连接，展示分类列表供选择
-5. 保存到 `~/.config/deepclick-blog/sites.json`
+输出 `missing` 时，进入初始化流程（**不要让用户手动运行脚本**）。
 
-**重新配置 / 新增站点**：再次运行 `setup.py`，选择 (a) 新增 或 (r) 重新配置。
+### 对话式初始化流程
 
-**验证配置是否就绪**：
+通过对话收集信息，Agent 自己调用脚本完成配置：
+
+**第一步**：询问用户 WordPress 账号邮箱（所有站共用）：
+> "请提供你的 WordPress 账号邮箱地址"
+
+**第二步**：询问要配置的站点及对应 Application Password：
+> "请提供各站点的 Application Password。生成方式：进入站点后台 → Users → Profile → 最底部 Application Passwords → 输入名称 → 生成 → 复制。
+> 请逐个提供：站点域名 + Application Password"
+
+**第三步**：收集完毕后，Agent 自动调用脚本验证并保存：
+
 ```bash
-python3 ~/.claude/skills/deepclick-blog/scripts/setup.py
-# 选 q 退出，会显示各站点连通性状态
+python3 -c "
+import base64, json, urllib.request
+from pathlib import Path
+
+email = '{EMAIL}'
+sites = {'{DOMAIN}': ('{URL}', '{APP_PASSWORD}'), ...}
+cfg = {}
+
+for domain, (url, pwd) in sites.items():
+    token = base64.b64encode(f'{email}:{pwd}'.encode()).decode()
+    req = urllib.request.Request(f'{url}/wp-json/wp/v2/users/me',
+          headers={'Authorization': f'Basic {token}'})
+    try:
+        d = json.loads(urllib.request.urlopen(req, timeout=10).read())
+        cfg[domain] = {'url': url, 'user': email, 'app_password': pwd,
+                       'en_category': None, 'zh_category': None}
+        print(f'✅ {domain}: {d.get(\"name\")}')
+    except Exception as e:
+        print(f'❌ {domain}: {e}')
+
+p = Path('~/.config/deepclick-blog/sites.json').expanduser()
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text(json.dumps(cfg, indent=2))
+print(f'已保存 {len(cfg)} 个站点')
+"
 ```
 
-配置文件不存在或站点连接失败时，在执行发布前提示用户先运行 setup.py。
+验证成功后告知用户配置完成，直接继续发布流程。
+失败的站点提示用户重新生成 Application Password 后再次提供。
 
 ---
 
