@@ -11,49 +11,32 @@ description: >
 
 # DeepClick 双语博客生成 Skill
 
-## 配置检查（第一步）
+## 安装后初始化（第一步，只需一次）
 
-**发布方式**：直接调用 WordPress REST API（Basic Auth + Application Password），不依赖 wpcom-mcp。
+**发布方式**：直接调用 WordPress REST API（Basic Auth + Application Password），无需 wpcom-mcp 或任何 OAuth 服务。
 
-### Credentials 配置文件
+### 首次使用：运行配置向导
 
-路径：`~/.config/deepclick-blog/sites.json`
-
-```json
-{
-  "traffictalking.com": {
-    "url": "https://traffictalking.com",
-    "user": "your_username",
-    "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
-    "en_category": 132592,
-    "zh_category": 132594
-  },
-  "googlepwa.blog": {
-    "url": "https://googlepwa.blog",
-    "user": "your_username",
-    "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
-    "en_category": null,
-    "zh_category": null
-  },
-  "androidpwa.com": {
-    "url": "https://androidpwa.com",
-    "user": "your_username",
-    "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
-    "en_category": null,
-    "zh_category": null
-  }
-}
-```
-
-配置文件不存在时，引导用户创建：
-1. WordPress Admin → Users → Edit Profile → Application Passwords → 输入名称 → 生成 → **立即复制**
-2. 创建 `~/.config/deepclick-blog/` 目录，按上方格式填写 sites.json
-3. Rank Math SEO 已安装即可，无需额外配置
-
-**验证配置**：
 ```bash
-python3 ~/.claude/skills/deepclick-blog/scripts/publish.py --help
+python3 ~/.claude/skills/deepclick-blog/scripts/setup.py
 ```
+
+向导会交互式引导你：
+1. 输入站点域名（可配置多个）
+2. 输入 WordPress 用户名
+3. 粘贴 Application Password（后台 → Users → Profile → Application Passwords → 生成）
+4. 自动测试连接，展示分类列表供选择
+5. 保存到 `~/.config/deepclick-blog/sites.json`
+
+**重新配置 / 新增站点**：再次运行 `setup.py`，选择 (a) 新增 或 (r) 重新配置。
+
+**验证配置是否就绪**：
+```bash
+python3 ~/.claude/skills/deepclick-blog/scripts/setup.py
+# 选 q 退出，会显示各站点连通性状态
+```
+
+配置文件不存在或站点连接失败时，在执行发布前提示用户先运行 setup.py。
 
 ---
 
