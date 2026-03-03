@@ -17,21 +17,19 @@ description: >
 
 | 变量                        | 说明                      | 示例                            |
 | --------------------------- | ------------------------- | ------------------------------- |
-| `DEEPCLICK_WP_URL`          | WordPress 站点地址        | `https://deepclick.com`         |
+| `DEEPCLICK_WP_URL`          | WordPress 站点地址        | `https://traffictalking.com`    |
 | `DEEPCLICK_WP_USER`         | WordPress 用户名          | `admin`                         |
 | `DEEPCLICK_WP_APP_PASSWORD` | Application Password      | `xxxx xxxx xxxx xxxx xxxx xxxx` |
-| `DEEPCLICK_DEMO_URL`        | Demo 预约链接（用于 CTA） | `https://deepclick.com`         |
 | `DEEPCLICK_WP_EN_CATEGORY`  | 英文博客分类 ID           | `3`                             |
 | `DEEPCLICK_WP_ZH_CATEGORY`  | 中文博客分类 ID           | `4`                             |
-| `DEEPCLICK_WP_ZH_LANG`      | Polylang 中文语言代码     | `zh`（需与 Polylang 配置一致）  |
 
 如果用户没有提供配置，先询问，或提示他们将配置加入环境变量。
 
 > **WordPress 前置要求**（只需配置一次）：
 >
-> 1. 在 `functions.php` 中注册 Yoast SEO meta 字段（见 `references/wordpress-publish.md` § SEO插件集成）
-> 2. Polylang Pro（免费版无法通过 REST API 关联翻译）
-> 3. WordPress Application Password（Users → Profile → Application Passwords）
+> 1. WordPress Application Password（Users → Profile → Application Passwords）
+> 2. Rank Math SEO 已安装（字段默认开放，无需额外配置）
+> 3. 在后台确认英文/中文分类 ID（wp-json/wp/v2/categories）
 
 ---
 
@@ -162,7 +160,7 @@ FOCUS_KW_ZH: [中文焦点关键词]
 DeepClick helps Meta advertisers fix post-click drop-offs and improve CVR by 30%+
 through automated re-engagement and post-click link optimization.
 
-→ [Book a Free Demo]({DEEPCLICK_DEMO_URL})
+→ [Book a Free Demo](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)
 ---
 ```
 
@@ -175,21 +173,21 @@ through automated re-engagement and post-click link optimization.
 DeepClick 专注 Meta 广告点击后链路优化，通过回流、再曝光与落地页优化，
 帮助出海广告团队平均提升 CVR 30%+，降低 CPA。
 
-→ [预约免费诊断]({DEEPCLICK_DEMO_URL})
+→ [预约免费诊断](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)
 ---
 ```
 
 ---
 
-### 步骤 5：发布到 WordPress（Polylang Pro）
+### 步骤 5：发布到 WordPress
 
 详细 API 参考见 `references/wordpress-publish.md`。
 
-**发布顺序（必须先英文后中文）**：
+**独立发布英中两篇**（不依赖 Polylang Pro，简单可靠）：
 
 ```python
 # 步骤 5.1 - 发布英文版
-POST {WP_URL}/wp-json/wp/v2/posts?lang=en
+POST {WP_URL}/wp-json/wp/v2/posts
 Body: {
   "title": EN_TITLE,
   "content": EN_CONTENT_HTML,
@@ -203,10 +201,10 @@ Body: {
     "rank_math_focus_keyword": FOCUS_KW_EN
   }
 }
-→ 记录返回的 en_post_id
+→ 记录返回的 en_post_url
 
-# 步骤 5.2 - 发布中文版并关联翻译
-POST {WP_URL}/wp-json/wp/v2/posts?lang={WP_ZH_LANG}&translations[en]={en_post_id}
+# 步骤 5.2 - 发布中文版（独立文章）
+POST {WP_URL}/wp-json/wp/v2/posts
 Body: {
   "title": ZH_TITLE,
   "content": ZH_CONTENT_HTML,
@@ -220,7 +218,7 @@ Body: {
     "rank_math_focus_keyword": FOCUS_KW_ZH
   }
 }
-→ 记录返回的 zh_post_id
+→ 记录返回的 zh_post_url
 ```
 
 **认证**：Base64 编码 `username:app_password`，放入 `Authorization: Basic <token>` Header。
@@ -229,11 +227,11 @@ Body: {
 
 ```
 ✅ 博客已发布
-- 英文版：{en_post_url} (ID: {en_post_id})
-- 中文版：{zh_post_url} (ID: {zh_post_id})
-- Polylang 翻译关联：已建立
+- 英文版：{en_post_url}
+- 中文版：{zh_post_url}
 - 主关键词：{primary_keyword}
 - 信号来源：{signal_source}
+- CTA 链接：https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo
 ```
 
 ---

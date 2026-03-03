@@ -32,7 +32,7 @@ def get_auth_header(username: str, app_password: str) -> str:
 
 ---
 
-## Polylang Pro 双语发布流程
+## 双语发布流程（独立发布，无需 Polylang Pro）
 
 ### 步骤 1：发布英文版
 
@@ -94,13 +94,12 @@ zh_post = publish_post(
             "rank_math_focus_keyword": "Meta 广告高点击低转化"
         }
     },
-    lang="zh",  # 对应 Polylang 中配置的中文语言代码
-    translations={"en": en_post_id}  # 关键：关联英文版
+    # 中文版独立发布，无需关联英文版
 )
 zh_post_id = zh_post["id"]
 ```
 
-发布成功后，Polylang 会自动将两篇文章标记为互为翻译。
+两篇文章独立发布，通过各自的 slug 和分类区分语言版本。
 
 ---
 
@@ -140,7 +139,7 @@ curl "https://yoursite.com/wp-json/wp/v2/posts/{en_post_id}" \
 | 401 | Application Password 无效 | 重新生成，注意带空格原样粘贴 |
 | 403 | 用户权限不足 | 确保用户是 Editor 或 Admin 角色 |
 | 400 `term_exists` | 分类 ID 不存在 | 检查分类 ID 是否正确 |
-| 400 lang parameter | Polylang Free 版不支持 | 升级到 Polylang Pro |
+| slug 冲突 | 英中 slug 相同 | 中文 slug 加 `-zh` 后缀 |
 | Rank Math meta 不生效 | Rank Math 版本过旧 | 升级到最新版本，字段默认开放 |
 
 ---
