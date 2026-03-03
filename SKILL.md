@@ -40,38 +40,56 @@ print('ok' if p.exists() and json.loads(p.read_text()) else 'missing')
 > "请提供各站点的 Application Password。生成方式：进入站点后台 → Users → Profile → 最底部 Application Passwords → 输入名称 → 生成 → 复制。
 > 请逐个提供：站点域名 + Application Password"
 
-**第三步**：收集完毕后，Agent 自动调用脚本验证并保存：
+**第三步**：Agent 自动验证连接并拉取分类列表：
 
 ```bash
 python3 -c "
 import base64, json, urllib.request
-from pathlib import Path
+email = '{EMAIL}'; url = '{URL}'; pwd = '{APP_PASSWORD}'
+token = base64.b64encode(f'{email}:{pwd}'.encode()).decode()
+headers = {'Authorization': f'Basic {token}'}
 
-email = '{EMAIL}'
-sites = {'{DOMAIN}': ('{URL}', '{APP_PASSWORD}'), ...}
-cfg = {}
+# 验证用户
+req = urllib.request.Request(f'{url}/wp-json/wp/v2/users/me', headers=headers)
+me = json.loads(urllib.request.urlopen(req, timeout=10).read())
+print('USER:' + me.get('name',''))
 
-for domain, (url, pwd) in sites.items():
-    token = base64.b64encode(f'{email}:{pwd}'.encode()).decode()
-    req = urllib.request.Request(f'{url}/wp-json/wp/v2/users/me',
-          headers={'Authorization': f'Basic {token}'})
-    try:
-        d = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        cfg[domain] = {'url': url, 'user': email, 'app_password': pwd,
-                       'en_category': None, 'zh_category': None}
-        print(f'✅ {domain}: {d.get(\"name\")}')
-    except Exception as e:
-        print(f'❌ {domain}: {e}')
-
-p = Path('~/.config/deepclick-blog/sites.json').expanduser()
-p.parent.mkdir(parents=True, exist_ok=True)
-p.write_text(json.dumps(cfg, indent=2))
-print(f'已保存 {len(cfg)} 个站点')
+# 拉分类
+req2 = urllib.request.Request(f'{url}/wp-json/wp/v2/categories?per_page=100', headers=headers)
+cats = json.loads(urllib.request.urlopen(req2, timeout=10).read())
+for c in cats:
+    print(f'CAT:{c[\"id\"]}:{c[\"name\"]}')
 "
 ```
 
-验证成功后告知用户配置完成，直接继续发布流程。
-失败的站点提示用户重新生成 Application Password 后再次提供。
+**第四步**：将分类列表展示给用户，对话式确认：
+
+> "站点 {domain} 共有以下分类，请告诉我哪个用于**英文文章**，哪个用于**中文文章**（输入 ID 即可）：
+> [ID] 分类名
+> [ID] 分类名
+> ..."
+
+Agent 尝试按名称**自动匹配**（优先选含 en/english/中文/zh/chinese 的分类名），有把握时直接确认，否则列出候选请用户选择。
+
+**第五步**：写入配置文件：
+
+```bash
+python3 -c "
+import json; from pathlib import Path
+p = Path('~/.config/deepclick-blog/sites.json').expanduser()
+cfg = json.loads(p.read_text()) if p.exists() else {}
+cfg['{DOMAIN}'] = {
+    'url': '{URL}', 'user': '{EMAIL}', 'app_password': '{APP_PASSWORD}',
+    'en_category': {EN_CAT_ID}, 'zh_category': {ZH_CAT_ID}
+}
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text(json.dumps(cfg, indent=2))
+print('saved')
+"
+```
+
+验证成功、分类已设置后，告知用户配置完成并直接继续发布流程。
+失败的站点提示重新生成 Application Password。
 
 ---
 
