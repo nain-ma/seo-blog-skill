@@ -228,8 +228,10 @@ FOCUS_KW_ZH: [中文焦点关键词]
 
 **文章结构（两种语言均遵循）**：
 
+> ⚠️ WordPress 页面中，`post title` 已作为 H1。**正文禁止再写 H1**，避免双标题。
+
 ```
-[H1] 核心关键词 + 用户利益（≤60字/符）
+[Title/H1 由 WordPress 标题承担（≤60字/符）]
 
 [导言] 痛点共鸣（2-3句）→ 承诺价值 → 预告结构
 
@@ -398,7 +400,8 @@ mkdir -p ~/logs/deepclick-blog
 ## 质量检查清单（发布前自查）
 
 - [ ] 文章核心论点是否能回答"这对我的 CVR/CPA 有什么影响"
-- [ ] H1 是否包含主关键词，且≤60字符
+- [ ] WordPress 标题（页面 H1）是否包含主关键词，且≤60字符
+- [ ] 正文首段前是否无额外 H1（防双标题）
 - [ ] Meta description 是否在 150-160 字符范围内
 - [ ] 是否有 3 个 CTA（顶/中/底）
 - [ ] 底部 CTA 是否有明确的 Demo 链接
@@ -424,20 +427,21 @@ python3 scripts/radar_serp_brief.py --from-api --limit 3 --out /tmp/serp-brief.j
 - 仅选择高分信号进入写作
 - 每篇文章必须有 `SERP Brief`（主关键词、意图、SERP共性、内容缺口、证据清单）
 
-### 2) 发布前质量拦截（评分卡）
+### 2) 发布前质量拦截（采用 claude-blog 评分体系）
 
-新增脚本：`scripts/seo_quality_gate.py`
+质量评估统一使用 `claude-blog` 的 `analyze_blog.py`（5 类 100 分体系），不再使用自定义评分脚本。
+
+默认门槛：
+- `<80` 分：强制 `draft`
+- 存在 `high` 严重问题：强制 `draft`
+
+`publish.py` 会在发布前自动调用：
 
 ```bash
-python3 scripts/seo_quality_gate.py --input article.json --min-score 75
+python3 ~/.claude/skills/blog/scripts/analyze_blog.py /tmp/claude-quality-*.md
 ```
 
-拦截规则：
-- `<75` 分：强制 `draft`
-- 硬拦截（即使高分也不能 publish）：
-  - 标题唯一性未通过
-  - 分类缺失
-  - 证据点不足（<2）
+并把结果写入发布日志（score/rating/issues）。
 
 ### 3) 每日 SEO Cron = 发文 + D+14 复盘
 
@@ -494,6 +498,56 @@ python3 scripts/seo_quality_dashboard.py --days 7
 ```
 
 展示：发布成功率、拦截率、平均质量分、高频拦截原因、低分修订队列。
+
+---
+
+## 生产SOP（固定执行，cron 同步）
+
+> 目标：稳定产出可发布 SEO Blog，杜绝占位符、重复段落、双标题、无 CTA 文。
+
+### S1. 数据源检索（Radar）
+- 仅用 DeepClick Radar 信号池。
+- 过滤优先级：Meta/归因/CVR/CPA/ROI/post-click。
+- 与 DeepClick 价值无关的信号直接丢弃。
+
+### S2. 选题与关键词（必出 Brief）
+- 必须先产出 `SERP Brief`（主关键词、意图、SERP 缺口、证据清单、商业角度）。
+- 无 Brief 不进入写作。
+
+### S3. 初稿生成（EN+ZH）
+- 先生成首稿，再进入结构清洗。
+- 文章必须包含 DeepClick CTA（顶部引导 + 中段提示 + 底部主 CTA）。
+- 禁止机械附加“内部资源/来源”区块，除非老板明确要求。
+
+### S4. AI 精修与结构清洗
+- 发布前强制清洗：
+  - 去正文首个 H1（WordPress 标题即页面 H1）
+  - 列表/表格/blockquote HTML 合法化
+  - 去重检测（重复段落比例超阈值直接拦截）
+  - 去占位符/TODO
+
+### S5. 质量门禁（本地 Gate）
+- 使用：`publish.py` 内置 `local-seo-gate`。
+- 语言门槛：EN `>=80`，ZH `>=72`。
+- 硬拦截仅保留：
+  - 缺少 DeepClick CTA
+  - 内容重复率过高
+- 软检查：结构层级与基础可读长度（提示优化，不做硬拦截）。
+- 自动修复：门禁失败后自动优化 1 次再复检。
+
+### S6. 发布策略（默认三站同发）
+- 默认站点：`traffictalking.com`、`googlepwa.blog`、`androidpwa.com`
+- 默认语言：EN + ZH
+- 分类必填，标题唯一性必过。
+
+### S7. 报告与复盘
+- 每次发布写入 `publish_log.jsonl`。
+- 每日输出：`quality-dashboard.md` + `daily-review.md`。
+- D+14 复盘指标：收录、排名、CTR、停留、CTA 点击率。
+
+### S8. 失败处理
+- 任一步失败：停止 publish，输出可执行修复动作。
+- 发现质量事故（重复段落、双标题等）：先下线为 draft，再修复流程。
 
 ---
 

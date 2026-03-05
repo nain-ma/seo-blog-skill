@@ -1,0 +1,28 @@
+{
+  "name": "deepclick-seo-pipeline-v2",
+  "stages": [
+    "signal_crawler",
+    "topic_clustering",
+    "query_discovery",
+    "intent_classification",
+    "serp_analysis",
+    "blog_generation",
+    "eeat_enhancement",
+    "internal_linking",
+    "publish"
+  ],
+  "rules": {
+    "disallow_commentary_only": true,
+    "require_serp_brief": true,
+    "url_slug_style": "semantic-no-date",
+    "quality_gate": {
+      "engine": "claude-blog",
+      "min_score_en": 80,
+      "min_score_zh": 72
+    },
+    "non_blocking_checks": [
+      "word_count",
+      "internal_links"
+    ]
+  }
+}

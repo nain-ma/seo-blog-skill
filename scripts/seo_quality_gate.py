@@ -18,7 +18,11 @@ from typing import Dict, List, Tuple
 
 
 def wc(text: str) -> int:
-    return len(re.findall(r"\b\w+\b", text or ""))
+    t = text or ""
+    en_words = len(re.findall(r"\b\w+\b", t))
+    cjk_chars = len(re.findall(r"[\u4e00-\u9fff]", t))
+    # 粗略换算：2 个中文字符约等于 1 个英文词长度单位
+    return en_words + cjk_chars // 2
 
 
 def has_any(text: str, kws: List[str]) -> bool:
@@ -149,8 +153,36 @@ def score_cta_and_publish(data: Dict) -> Tuple[int, str]:
     return s, "；".join(notes) if notes else "OK"
 
 
+def _cap(v: int, max_v: int) -> int:
+    return max(0, min(v, max_v))
+
+
+def _has_heading_leak(text: str) -> bool:
+    # 出现在已渲染正文里的 markdown 标题符号，通常表示未正确转 HTML
+    return bool(re.search(r"(^|\n)\s{0,3}#{1,6}\s+", text or ""))
+
+
+def _has_todo_marker(data: Dict) -> bool:
+    joined = "\n".join([
+        str(data.get("primary_keyword", "")),
+        "\n".join(data.get("secondary_keywords", []) or []),
+        "\n".join(data.get("serp_top10_common", []) or []),
+        str(data.get("content_gap", "")),
+        str(data.get("content_markdown", ""))[:2000],
+    ]).lower()
+    return "todo" in joined or "待补" in joined
+
+
+def _repetition_ratio(text: str) -> float:
+    sents = [s.strip() for s in re.split(r"[。！？.!?]\s*", text or "") if s.strip()]
+    if len(sents) < 6:
+        return 0.0
+    uniq = len(set(sents))
+    return 1 - (uniq / len(sents))
+
+
 def run(data: Dict, min_score: int) -> Dict:
-    blocks = {
+    raw_blocks = {
         "keyword_intent_25": score_keyword_intent(data),
         "structure_20": score_structure(data),
         "eeat_25": score_eeat(data),
@@ -158,8 +190,16 @@ def run(data: Dict, min_score: int) -> Dict:
         "cta_publish_15": score_cta_and_publish(data),
     }
 
+    # 强制对齐各块上限，避免超 100 分
+    caps = {
+        "keyword_intent_25": 25,
+        "structure_20": 20,
+        "eeat_25": 25,
+        "cluster_links_20": 20,
+        "cta_publish_15": 15,
+    }
+    blocks = {k: (_cap(v[0], caps[k]), v[1]) for k, v in raw_blocks.items()}
     total = sum(v[0] for v in blocks.values())
-    # 25+20+25+20+15 = 105，归一化到100
     normalized = round(total * 100 / 105)
 
     hard_fails = []
@@ -169,6 +209,15 @@ def run(data: Dict, min_score: int) -> Dict:
         hard_fails.append("category_missing")
     if len(data.get("evidence", []) or []) < 2:
         hard_fails.append("evidence_insufficient")
+
+    body = data.get("content_markdown", "") or ""
+    rendered = data.get("rendered_content", "") or ""
+    if rendered and _has_heading_leak(rendered):
+        hard_fails.append("markdown_heading_leak")
+    if _has_todo_marker(data):
+        hard_fails.append("todo_placeholder_found")
+    if _repetition_ratio(body) >= 0.35:
+        hard_fails.append("content_repetition_high")
 
     decision = "publish" if normalized >= min_score and not hard_fails else "draft"
 
