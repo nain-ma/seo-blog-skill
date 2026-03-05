@@ -174,6 +174,18 @@ GET https://radar.qiliangjia.one/api/digests?type=daily&limit=3&offset=0
 
 ---
 
+### 步骤 2.5：行业参考 Blog 拆解（用户提供参考文章时必做）
+
+当用户提供某行业参考 SEO Blog（如金融行业）并要求“提取关键要点/按该风格迭代模板”时：
+
+1. 先读取并拆解原文结构、论点、证据、CTA 与合规表达。
+2. 使用 `templates/industry-insight-extract.md` 填充提取结果。
+3. 输出两层结论：
+   - **可迁移框架**：可跨行业复用的写作结构与论证方式。
+   - **行业特异约束**：仅该行业适用的术语、风险披露、指标口径。
+4. 将提取结果映射到 DeepClick 叙事，重点回到 CVR/CPA/ROI 与 post-click 优化，不照搬行业术语。
+5. 若原文缺少可验证证据，必须在最终写作计划中标记为“待补数据来源”，禁止强行下结论。
+
 ### 步骤 3：生成 SEO 计划
 
 在写正文之前，先确定：
@@ -395,8 +407,62 @@ mkdir -p ~/logs/deepclick-blog
 
 ---
 
+## 2026-03 质量升级（强制执行）
+
+> 目标：所有改造围绕 **DeepClick Radar → Blog Skill → 每日 SEO Cron** 闭环。
+
+### 1) Radar 先出 Brief，不再直接发文
+
+新增脚本：`scripts/radar_serp_brief.py`
+
+```bash
+python3 scripts/radar_serp_brief.py --from-api --limit 3 --out /tmp/serp-brief.json
+```
+
+规则：
+- 先按 DeepClick 相关性打分（Meta/CVR/CPA/ROI/post-click 优先）
+- 仅选择高分信号进入写作
+- 每篇文章必须有 `SERP Brief`（主关键词、意图、SERP共性、内容缺口、证据清单）
+
+### 2) 发布前质量拦截（评分卡）
+
+新增脚本：`scripts/seo_quality_gate.py`
+
+```bash
+python3 scripts/seo_quality_gate.py --input article.json --min-score 75
+```
+
+拦截规则：
+- `<75` 分：强制 `draft`
+- 硬拦截（即使高分也不能 publish）：
+  - 标题唯一性未通过
+  - 分类缺失
+  - 证据点不足（<2）
+
+### 3) 每日 SEO Cron = 发文 + D+14 复盘
+
+新增脚本：`scripts/seo_daily_review.py`
+
+```bash
+python3 scripts/seo_daily_review.py \
+  --publish-log ~/.openclaw/logs/deepclick-blog/publish_log.jsonl \
+  --out ~/.openclaw/logs/deepclick-blog/daily-review.md
+```
+
+复盘最低字段：
+- 收录状态
+- 平均排名
+- CTR
+- 页面停留
+- Demo 点击率
+
+并输出修订建议（改标题/改H2/补证据/调CTA），形成持续优化闭环。
+
+---
+
 ## 参考文件
 
 - `references/seo-structure.md` — SEO 博客结构详细模板和关键词策略
 - `references/wordpress-publish.md` — WordPress REST API 完整技术文档（Polylang Pro + Yoast）
 - `references/deepclick-positioning.md` — DeepClick 产品定位和叙事基准
+- `templates/industry-finance-template.md` — 金融行业参考文章提炼模板（可迁移框架 + 行业特异约束）

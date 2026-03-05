@@ -17,6 +17,7 @@ import base64
 import json
 import sys
 import os
+import subprocess
 from pathlib import Path
 
 try:
@@ -28,6 +29,7 @@ except ImportError:
 
 
 CONFIG_PATH = Path.home() / ".config" / "deepclick-blog" / "sites.json"
+QUALITY_GATE_PATH = Path(__file__).with_name("seo_quality_gate.py")
 
 # sites.json 格式示例：
 # {
@@ -62,6 +64,29 @@ def load_config():
 def get_auth_header(user: str, app_password: str) -> str:
     token = base64.b64encode(f"{user}:{app_password}".encode()).decode()
     return f"Basic {token}"
+
+
+def run_quality_gate(args: argparse.Namespace):
+    if not args.quality_json:
+        return None
+    if not QUALITY_GATE_PATH.exists():
+        return {"error": f"quality gate script not found: {QUALITY_GATE_PATH}"}
+
+    cmd = [
+        sys.executable,
+        str(QUALITY_GATE_PATH),
+        "--input",
+        args.quality_json,
+        "--min-score",
+        str(args.min_score),
+    ]
+    p = subprocess.run(cmd, capture_output=True, text=True)
+    if p.returncode != 0:
+        return {"error": "quality_gate_failed", "stderr": p.stderr[:500], "stdout": p.stdout[:500]}
+    try:
+        return json.loads(p.stdout)
+    except Exception:
+        return {"error": "quality_gate_invalid_json", "raw": p.stdout[:500]}
 
 
 def publish_post(site_cfg: dict, args: argparse.Namespace) -> dict:
@@ -141,7 +166,22 @@ def main():
     parser.add_argument("--meta-title", default="", help="Rank Math SEO title")
     parser.add_argument("--meta-desc", default="", help="Rank Math meta description")
     parser.add_argument("--focus-kw", default="", help="Rank Math focus keyword")
+    parser.add_argument("--quality-json", default="", help="Path to quality gate input JSON")
+    parser.add_argument("--min-score", type=int, default=75, help="Quality gate minimum score")
     args = parser.parse_args()
+
+    gate = run_quality_gate(args)
+    if gate:
+        if gate.get("error"):
+            print(json.dumps({"error": "quality_gate_error", "detail": gate}, ensure_ascii=False, indent=2))
+            sys.exit(1)
+        if gate.get("decision") != "publish":
+            print(json.dumps({
+                "error": "blocked_by_quality_gate",
+                "quality_gate": gate,
+                "hint": "Fix quality issues or lower --min-score, then retry."
+            }, ensure_ascii=False, indent=2))
+            sys.exit(2)
 
     config = load_config()
     site_cfg = config.get(args.site)
@@ -153,6 +193,8 @@ def main():
         sys.exit(1)
 
     result = publish_post(site_cfg, args)
+    if gate:
+        result["quality_gate"] = gate
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
