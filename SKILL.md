@@ -458,6 +458,43 @@ python3 scripts/seo_daily_review.py \
 
 并输出修订建议（改标题/改H2/补证据/调CTA），形成持续优化闭环。
 
+### 4) 第二批：发布日志标准化 + 一键 cron 流水线 + 质量看板
+
+#### 4.1 发布日志标准化（publish.py 内置）
+
+`publish.py` 新增参数：
+- `--article-title`
+- `--primary-keyword`
+- `--signal-source`
+- `--topic-cluster`
+- `--log-path`
+
+每次执行（成功/失败/拦截）都会写入：
+`~/.openclaw/logs/deepclick-blog/publish_log.jsonl`
+
+#### 4.2 每日一键流水线
+
+新增脚本：`scripts/seo_cron_pipeline.py`
+
+```bash
+python3 scripts/seo_cron_pipeline.py --limit 5
+```
+
+产物：
+- `serp-brief-YYYY-MM-DD.json`
+- `daily-review.md`
+- `quality-dashboard.md`
+
+#### 4.3 质量看板
+
+新增脚本：`scripts/seo_quality_dashboard.py`
+
+```bash
+python3 scripts/seo_quality_dashboard.py --days 7
+```
+
+展示：发布成功率、拦截率、平均质量分、高频拦截原因、低分修订队列。
+
 ---
 
 ## 参考文件

@@ -18,6 +18,7 @@ import json
 import sys
 import os
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -30,6 +31,7 @@ except ImportError:
 
 CONFIG_PATH = Path.home() / ".config" / "deepclick-blog" / "sites.json"
 QUALITY_GATE_PATH = Path(__file__).with_name("seo_quality_gate.py")
+PUBLISH_LOG_PATH = Path.home() / ".openclaw" / "logs" / "deepclick-blog" / "publish_log.jsonl"
 
 # sites.json 格式示例：
 # {
@@ -87,6 +89,39 @@ def run_quality_gate(args: argparse.Namespace):
         return json.loads(p.stdout)
     except Exception:
         return {"error": "quality_gate_invalid_json", "raw": p.stdout[:500]}
+
+
+def append_publish_log(args: argparse.Namespace, status: str, result: dict = None, gate: dict = None, error: str = ""):
+    log_path = Path(args.log_path or PUBLISH_LOG_PATH)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    row = {
+        "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": status,
+        "site_name": args.site,
+        "lang": args.lang,
+        "article_title": args.article_title or args.title,
+        "primary_keyword": args.primary_keyword or args.focus_kw,
+        "signal_source": args.signal_source,
+        "topic_cluster": args.topic_cluster,
+        "slug": args.slug,
+        "post_id": (result or {}).get("post_id"),
+        "post_url": (result or {}).get("url"),
+        "edit_url": (result or {}).get("edit_url"),
+        "quality_score": (gate or {}).get("score") if gate else None,
+        "quality_decision": (gate or {}).get("decision") if gate else None,
+        "quality_hard_fails": (gate or {}).get("hard_fails") if gate else [],
+        "error": error or (result or {}).get("error", ""),
+    }
+
+    # 兼容日报脚本字段
+    if args.lang == "en":
+        row["en_post_url"] = row["post_url"]
+    else:
+        row["zh_post_url"] = row["post_url"]
+
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def publish_post(site_cfg: dict, args: argparse.Namespace) -> dict:
@@ -168,14 +203,21 @@ def main():
     parser.add_argument("--focus-kw", default="", help="Rank Math focus keyword")
     parser.add_argument("--quality-json", default="", help="Path to quality gate input JSON")
     parser.add_argument("--min-score", type=int, default=75, help="Quality gate minimum score")
+    parser.add_argument("--article-title", default="", help="Canonical article title for reporting")
+    parser.add_argument("--primary-keyword", default="", help="Primary keyword for reporting")
+    parser.add_argument("--signal-source", default="", help="Radar signal summary/source")
+    parser.add_argument("--topic-cluster", default="", help="Topic cluster id")
+    parser.add_argument("--log-path", default=str(PUBLISH_LOG_PATH), help="JSONL path for publish logs")
     args = parser.parse_args()
 
     gate = run_quality_gate(args)
     if gate:
         if gate.get("error"):
+            append_publish_log(args, status="quality_gate_error", gate=gate, error="quality_gate_error")
             print(json.dumps({"error": "quality_gate_error", "detail": gate}, ensure_ascii=False, indent=2))
             sys.exit(1)
         if gate.get("decision") != "publish":
+            append_publish_log(args, status="blocked", gate=gate, error="blocked_by_quality_gate")
             print(json.dumps({
                 "error": "blocked_by_quality_gate",
                 "quality_gate": gate,
@@ -195,6 +237,12 @@ def main():
     result = publish_post(site_cfg, args)
     if gate:
         result["quality_gate"] = gate
+
+    if result.get("error"):
+        append_publish_log(args, status="failed", result=result, gate=gate, error=result.get("error", ""))
+    else:
+        append_publish_log(args, status="success", result=result, gate=gate)
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
