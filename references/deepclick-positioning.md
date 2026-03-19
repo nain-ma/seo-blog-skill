@@ -36,7 +36,10 @@ DeepClick **是**：回访态策略 + 再曝光编排 + 转化闭环系统
 3. 对回流、再曝光、PWA、推送或风控意味着什么
 4. 对产品路线、销售叙事或客户建议有什么启发
 
-## 关键词矩阵（SEO）
+## 种子关键词矩阵（SEO — 用于 Autocomplete 动态扩展）
+
+> 以下关键词为**种子词**，用作 `scripts/keyword_expand.py` 的输入。
+> 实际文章关键词通过 Autocomplete 字母扩展动态生成，不限于此列表。
 
 **高商业价值（直接转化意图）**
 - meta ads post-click optimization
@@ -54,11 +57,11 @@ DeepClick **是**：回访态策略 + 再曝光编排 + 转化闭环系统
 - meta pixel conversion optimization
 - facebook ads ROAS improvement
 
-**长尾词（漏斗顶部）**
-- what is a good CVR for facebook ads [industry]
-- facebook ads benchmark [year]
+**长尾种子词（漏斗顶部）**
+- what is a good CVR for facebook ads
+- facebook ads benchmark
 - meta ads A/B testing landing page
-- facebook ads CPA by industry 2025
+- facebook ads CPA by industry
 - how to track post-click behavior facebook
 
 ## 行业数据（文章中可引用）

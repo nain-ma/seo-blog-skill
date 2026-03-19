@@ -17,17 +17,23 @@ description: >
 
 ### 检测是否需要初始化
 
-每次 skill 被调用时，先检查配置文件是否存在且有效：
+每次 skill 被调用时，先检查配置文件和依赖是否存在且有效：
 
 ```bash
 python3 -c "
 import json; from pathlib import Path
 p = Path('~/.config/deepclick-blog/sites.json').expanduser()
-print('ok' if p.exists() and json.loads(p.read_text()) else 'missing')
+sites = 'ok' if p.exists() and json.loads(p.read_text()) else 'missing'
+try:
+    import feedparser; fp = 'ok'
+except ImportError:
+    fp = 'missing'
+print(f'sites:{sites} feedparser:{fp}')
 "
 ```
 
-输出 `missing` 时，进入初始化流程（**不要让用户手动运行脚本**）。
+输出含 `sites:missing` 时，进入初始化流程（**不要让用户手动运行脚本**）。
+输出含 `feedparser:missing` 时，先安装依赖：`python3 -m pip install feedparser -q`。
 
 ### 对话式初始化流程
 
@@ -159,16 +165,67 @@ GET https://radar.qiliangjia.one/api/digests?type=daily&limit=3&offset=0
 
 ---
 
+### 步骤 1.5：选题扩展与评分
+
+在获取信号后、确定角度前，汇聚多信号源并通过长尾词扩展和评分选出最佳话题。
+
+**手动模式跳过此步骤**：用户直接指定话题时，直接进入步骤 2。
+
+#### 1.5.1 多源候选汇聚
+
+将以下来源的候选话题合并为统一列表，每条标注来源类型：
+
+1. **radar API 信号**（步骤 1 的输出）— 标记为 `signal`
+2. **竞品 RSS 新文章**：
+
+```bash
+python3 ~/.claude/skills/deepclick-blog/scripts/rss_monitor.py --days 7
+```
+
+从输出的 `new_articles` 中提取标题作为候选，标记为 `rss`。关注竞品写了但我们没有对应内容的话题（内容 gap）。
+
+3. **常青选题池**：读取 `references/evergreen-topics.md`，过滤掉 `.used-signals.json` 中已使用的话题 ID（格式 `evergreen:{ID}`），标记为 `evergreen`。
+
+某源无数据时继续用剩余来源，不中断。
+
+#### 1.5.2 长尾词扩展验证
+
+对每个候选话题提取 1-2 个种子关键词，调用 Autocomplete 扩展：
+
+```bash
+python3 ~/.claude/skills/deepclick-blog/scripts/keyword_expand.py --seeds "种子词1,种子词2"
+```
+
+记录每个候选话题的长尾词命中数（`total` 字段），用于评分。
+
+> 为控制请求量，每次选题最多扩展 5 个候选话题的种子词。优先扩展来自 `signal` 和 `rss` 的话题。
+
+#### 1.5.3 加权评分排序
+
+| 维度       | 分值  | 规则                                                          |
+| ---------- | ----- | ------------------------------------------------------------- |
+| 搜索需求   | 0-5   | Autocomplete 长尾变体数：0 个=0，1-5 个=2，6-15 个=3，16+=5  |
+| 时效性     | 0-3   | radar 信号=3，RSS 7 天内=2，常青池=1                          |
+| 内容 gap   | 0-2   | 竞品最近写了且我们无对应文章=+2                               |
+| 多样性惩罚 | -2\~0 | 最近 7 天已发布相同角度类型=-2（查 `~/logs/deepclick-blog/`）  |
+
+**交互模式**：展示得分最高的 3 个候选话题及评分明细，等用户选择。
+**批量模式**（`--batch`）：自动选择得分最高的候选话题。
+
+#### 1.5.4 记录已用话题
+
+发布完成后，将选中话题的信号 URL 或常青话题 ID（`evergreen:{ID}`）追加到 `.used-signals.json`。
+
+---
+
 ### 步骤 2：确定博客角度
 
-基于筛选出的信号，选择一个清晰的文章角度。角度类型：
+基于步骤 1.5 选出的话题，参考 `references/content-types.md` 中的 **10 种角度模板**选择最匹配的文章角度。
 
-| 类型     | 适用场景            | 示例标题格式                                                  |
-| -------- | ------------------- | ------------------------------------------------------------- |
-| 新闻分析 | Meta 政策/功能变化  | "How [Meta Change] Will Impact Your Ad CVR in [CURRENT_YEAR]" |
-| 操作指南 | 具体优化问题        | "5 Post-Click Fixes That Lower Meta Ads CPA by 30%"           |
-| 数据洞察 | Benchmark、趋势数据 | "Meta Ads CVR Benchmarks [CURRENT_YEAR]: Where Do You Stand?" |
-| 问题诊断 | 常见痛点            | "Why Your Facebook Ads Have High CTR But Low CVR"             |
+角度选择依据：
+- 话题来源类型（signal 偏向新闻分析，evergreen 偏向科普/指南）
+- Autocomplete 扩展中出现的用户搜索意图（"how to" → 操作指南，"vs" → 对比评测，"what is" → 术语科普）
+- 最近 7 天已发布的角度类型（避免重复）
 
 每篇文章聚焦**一个核心角度**，不要把所有信号都塞进一篇文章。
 
@@ -555,5 +612,9 @@ python3 scripts/seo_quality_dashboard.py --days 7
 
 - `references/seo-structure.md` — SEO 博客结构详细模板和关键词策略
 - `references/wordpress-publish.md` — WordPress REST API 完整技术文档（Polylang Pro + Yoast）
-- `references/deepclick-positioning.md` — DeepClick 产品定位和叙事基准
+- `references/deepclick-positioning.md` — DeepClick 产品定位、种子关键词矩阵
+- `references/content-types.md` — 10 种文章角度模板库
+- `references/evergreen-topics.md` — 常青选题池（30-50 个话题）
 - `templates/industry-finance-template.md` — 金融行业参考文章提炼模板（可迁移框架 + 行业特异约束）
+- `scripts/keyword_expand.py` — Google Autocomplete 长尾词扩展脚本
+- `scripts/rss_monitor.py` — 竞品 RSS 监控脚本
