@@ -69,13 +69,13 @@ H1 (1个/页) → 主关键词 + 用户利益
 英文：
 ```
 *Struggling with high CTR but low CVR on Meta ads?
-→ See how DeepClick diagnoses your post-click drop-offs — [Free Audit](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)*
+→ See how DeepClick diagnoses your post-click drop-offs — [Free Audit](https://deepclick.com/contact-sales?utm_source=seo-blog&utm_medium=organic-content&utm_campaign=seo&utm_content=contact-sales)*
 ```
 
 中文：
 ```
 *Meta 广告点击率不低，但转化率一直上不来？
-→ 看看 DeepClick 如何诊断你的点击后流失问题 — [免费诊断](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)*
+→ 看看 DeepClick 如何诊断你的点击后流失问题 — [免费诊断](https://deepclick.com/contact-sales?utm_source=seo-blog&utm_medium=organic-content&utm_campaign=seo&utm_content=contact-sales)*
 ```
 
 ### 中部 CTA（Callout Box，关键数据洞察后）
@@ -85,7 +85,7 @@ H1 (1个/页) → 主关键词 + 用户利益
 > **Industry Average CVR: 1.57% | Top performers: 3-5%**
 > Is your Meta Ads CVR above or below average? DeepClick shows you exactly where
 > you're losing clicks — and fixes it automatically.
-> → [See Your Post-Click Score](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)
+> → [See Your Post-Click Score](https://deepclick.com/contact-sales?utm_source=seo-blog&utm_medium=organic-content&utm_campaign=seo&utm_content=contact-sales)
 ```
 
 ### 底部 CTA（完整 Block，文章结尾）
@@ -99,7 +99,7 @@ through automated re-engagement, post-click link optimization, and landing page 
 
 Join 200+ Meta Ads teams who've cut CPA without increasing budget.
 
-→ [Book a Free 20-Minute Demo](https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo)
+→ [Book a Free 20-Minute Demo](https://deepclick.com/contact-sales?utm_source=seo-blog&utm_medium=organic-content&utm_campaign=seo&utm_content=contact-sales)
 
 ---
 ```

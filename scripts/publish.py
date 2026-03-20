@@ -21,6 +21,7 @@ import subprocess
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlencode
 
 try:
     import requests
@@ -33,6 +34,12 @@ except ImportError:
 CONFIG_PATH = Path.home() / ".config" / "deepclick-blog" / "sites.json"
 CLAUDE_ANALYZER_PATH = Path.home() / ".claude" / "skills" / "blog" / "scripts" / "analyze_blog.py"
 PUBLISH_LOG_PATH = Path.home() / ".openclaw" / "logs" / "deepclick-blog" / "publish_log.jsonl"
+CTA_CANONICAL_URL = "https://deepclick.com/contact-sales"
+UTM_SOURCE = "seo-blog"
+UTM_MEDIUM = "organic-content"
+UTM_CAMPAIGN = "seo"
+UTM_CONTENT = "contact-sales"
+
 
 # sites.json 格式示例：
 # {
@@ -79,6 +86,31 @@ def html_to_text(html: str) -> str:
     return t.strip()
 
 
+def deepclick_contact_sales_url_with_utm() -> str:
+    return CTA_CANONICAL_URL + "?" + urlencode({
+        "utm_source": UTM_SOURCE,
+        "utm_medium": UTM_MEDIUM,
+        "utm_campaign": UTM_CAMPAIGN,
+        "utm_content": UTM_CONTENT,
+    })
+
+
+def normalize_deepclick_cta_links(content: str) -> str:
+    """将历史 deepclick CTA 链接统一为带 SEO UTM 的 /contact-sales。"""
+    if not content:
+        return content
+
+    def _with_utm(match: re.Match) -> str:
+        return deepclick_contact_sales_url_with_utm()
+
+    return re.sub(
+        r"https?://(?:www\.)?deepclick\.com/contact-sales(?:/)?(?:\?[^\"'\s<>]*)?",
+        _with_utm,
+        content,
+        flags=re.IGNORECASE,
+    )
+
+
 def duplication_check(body_md: str):
     paras = [p.strip() for p in re.split(r"\n\s*\n", body_md or "") if len(p.strip()) >= 80]
     if len(paras) < 3:
@@ -109,12 +141,14 @@ def yaml_quote(s: str) -> str:
 
 def marketing_usable_check(content_html: str):
     t = (content_html or "").lower()
-    has_deepclick_link = "deepclick.com" in t
+    has_deepclick_link = "deepclick.com/contact-sales" in t
+    has_utm = "utm_campaign=seo" in t
     has_action = any(k in t for k in ["book a free demo", "预约免费诊断", "book a demo", "免费诊断"])
-    ok = has_deepclick_link and has_action
+    ok = has_deepclick_link and has_action and has_utm
     return {
         "ok": ok,
         "has_deepclick_link": has_deepclick_link,
+        "has_utm_campaign": has_utm,
         "has_action_cta": has_action,
     }
 
@@ -208,8 +242,8 @@ def auto_optimize_once(args: argparse.Namespace, gate: dict):
         content += "\n" + cite_line
 
     # ensure CTA presence
-    if "deepclick.com" not in content.lower():
-        content += '\n<p>→ <a href="https://deepclick.com?utm_source=blog&utm_medium=content&utm_campaign=seo">Book a Free Demo</a></p>'
+    if "deepclick.com/contact-sales" not in content.lower() or "utm_campaign=seo" not in content.lower():
+        content += f'\n<p>→ <a href="{deepclick_contact_sales_url_with_utm()}">Book a Free Demo</a></p>'
 
     args.content = content
 
@@ -294,7 +328,7 @@ def publish_post(site_cfg: dict, args: argparse.Namespace) -> dict:
         key = "en_category" if args.lang == "en" else "zh_category"
         category_id = site_cfg.get(key)
 
-    normalized_content = strip_leading_h1_from_html(args.content)
+    normalized_content = normalize_deepclick_cta_links(strip_leading_h1_from_html(args.content))
 
     payload = {
         "title": args.title,
